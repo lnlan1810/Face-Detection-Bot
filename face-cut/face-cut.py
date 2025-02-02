@@ -4,10 +4,7 @@ import json
 import ydb
 import ydb.iam
 import os
-import io
 import logging
-import hashlib
-import base64
 from PIL import Image
 from io import BytesIO
 
@@ -15,7 +12,7 @@ from io import BytesIO
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Khởi tạo clients (S3, YDB) một lần
+# Khởi tạo clients (s3, ydb) một lần
 def get_s3_client():
     return boto3.client(
         service_name='s3',
@@ -67,7 +64,7 @@ def insert_photo_face(pool, table_name, key_id, origin_photo_key_id):
 # Hàm chính
 def handler(event, context):
     logger.info('Start trigger face cut processing')
-    
+
     # Lấy các biến môi trường
     db_endpoint = os.environ['DB_API_ENDPOINT']
     db_name = os.environ['DB_NAME']
@@ -80,8 +77,10 @@ def handler(event, context):
     ydb_pool = get_ydb_pool(db_endpoint, db_name)
 
     try:
+        # Xử lý từng message trong event
         for message in event['messages']:
             task = json.loads(message['details']['message']['body'])
+
             object_id = task['object_id']
             x1 = int(task['vertices'][0]['x'])
             y1 = int(task['vertices'][0]['y'])
@@ -90,8 +89,12 @@ def handler(event, context):
 
             # Tải ảnh gốc từ S3
             try:
+                logger.info(f"Attempting to get object with key: {object_id} from bucket: {photos_bucket_id}")
                 object_response = s3.get_object(Bucket=photos_bucket_id, Key=object_id)
                 image_data = BytesIO(object_response['Body'].read())
+            except s3.exceptions.NoSuchKey:
+                logger.error(f"Object with key {object_id} does not exist in bucket {photos_bucket_id}")
+                continue  # Bỏ qua message này và tiếp tục xử lý message tiếp theo
             except Exception as e:
                 logger.error(f"Error downloading image from S3: {e}")
                 continue
@@ -105,18 +108,13 @@ def handler(event, context):
 
             # Tạo key mới và tải lên ảnh đã cắt
             new_object_id = f"{uuid.uuid4()}.jpg"
-            
             try:
-                # Tính Content-MD5 để đảm bảo dữ liệu không bị thay đổi
-                md5_hash = hashlib.md5(cropped_image_data.getvalue()).digest()
-                content_md5 = base64.b64encode(md5_hash).decode('utf-8')
-                
+                logger.info(f"Uploading cropped image with size: {cropped_image_data.getbuffer().nbytes} bytes")
                 s3.put_object(
                     Bucket=faces_bucket_id,
                     Key=new_object_id,
-                    Body=cropped_image_data.getvalue(),
-                    ContentType='image/jpeg',
-                    ContentMD5=content_md5
+                    Body=cropped_image_data,  # Truyền trực tiếp BytesIO
+                    ContentType='image/jpeg'
                 )
                 logger.info(f"Uploaded cropped image to S3: {new_object_id}")
             except Exception as e:

@@ -8,12 +8,13 @@ terraform {
 }
 
 provider "yandex" {
-  service_account_key_file = "/Users/laptoptt/tf-key/key.json"
+  service_account_key_file = "key.json"
   cloud_id                 = var.cloud_id
   folder_id                = var.folder_id
   zone                     = "ru-central1-a"
 }
 
+# IAM Service Account Keys
 resource "yandex_iam_service_account_static_access_key" "sa-static-key" {
   service_account_id = var.sa_id
   description        = "Static access key for object storage"
@@ -24,6 +25,7 @@ resource "yandex_iam_service_account_api_key" "sa-api-key" {
   description        = "Api key for authorization"
 }
 
+# Object Storage Buckets
 resource "yandex_storage_bucket" "photos-bucket" {
   access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
   secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
@@ -38,12 +40,14 @@ resource "yandex_storage_bucket" "faces-bucket" {
   acl    = "private"
 }
 
+# Message Queue
 resource "yandex_message_queue" "face-cut-task-queue" {
   name = var.face-cut-task-queue-name
   access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
   secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
 }
 
+# YDB Database & Table
 resource "yandex_ydb_database_serverless" "db" {
   name                = var.ydb-name
 
@@ -114,7 +118,7 @@ resource "yandex_function" "face-detection-func" {
   name               = var.face-detection-func-name
   description        = "Face detection handler"
   user_hash = "v1.0.0"
-  runtime            = "python312"
+  runtime            = "python311"
   entrypoint         = "face-detection.handler"
   memory             = "128"
   execution_timeout  = "10"
@@ -155,7 +159,7 @@ resource "yandex_function" "face-cut-func" {
   name               = var.face-cut-func-name
   description        = "Face cut handler"
   user_hash = "v1.0.0"
-  runtime            = "python312"
+  runtime            = "python311"
   entrypoint         = "face-cut.handler"
   memory             = "128"
   execution_timeout  = "10"
@@ -199,7 +203,7 @@ resource "yandex_function" "telegram-bot-func" {
   name               = var.telegram-bot-func-name
   description        = "Telegram bot function"
   user_hash          = "v1.0.0"
-  runtime            = "python312"
+  runtime            = "python311"
   entrypoint         = "telegram-bot.handler"
   memory             = "128"
   execution_timeout  = "10"
