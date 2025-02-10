@@ -39,7 +39,7 @@ variable "face-cut-task-queue-name" {
 variable "ydb-name" {
   type        = string
   description = "YDB name"
-  default = "vvot35-db-photo-face"
+  default = "vvot35-db"
 }
 
 variable "api-gateway-name" {

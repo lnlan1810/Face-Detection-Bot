@@ -118,7 +118,7 @@ resource "yandex_function" "face-detection-func" {
   name               = var.face-detection-func-name
   description        = "Face detection handler"
   user_hash = "v1.0.0"
-  runtime            = "python311"
+  runtime            = "python312"
   entrypoint         = "face-detection.handler"
   memory             = "128"
   execution_timeout  = "10"
@@ -159,7 +159,7 @@ resource "yandex_function" "face-cut-func" {
   name               = var.face-cut-func-name
   description        = "Face cut handler"
   user_hash = "v1.0.0"
-  runtime            = "python311"
+  runtime            = "python312"
   entrypoint         = "face-cut.handler"
   memory             = "128"
   execution_timeout  = "10"
@@ -203,7 +203,7 @@ resource "yandex_function" "telegram-bot-func" {
   name               = var.telegram-bot-func-name
   description        = "Telegram bot function"
   user_hash          = "v1.0.0"
-  runtime            = "python311"
+  runtime            = "python312"
   entrypoint         = "telegram-bot.handler"
   memory             = "128"
   execution_timeout  = "10"
